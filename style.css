@@ -90,27 +90,22 @@ body {
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    border: 3px solid #43b581;
-    /* Default to online color */
+    border: 3px solid #000000;
+    /* Black outline */
+    flex-shrink: 0;
+    /* Prevent the avatar from shrinking if user info is long */
 }
 
-.avatar.online {
-    border-color: #43b581;
-}
-
-.avatar.idle {
-    border-color: #faa61a;
-}
-
-.avatar.dnd {
-    border-color: #f04747;
-}
-
-.avatar.offline {
-    border-color: #747f8d;
+.status-icon {
+    /* Now positioned next to the username */
+    width: 14px;
+    height: 14px;
 }
 
 .user-info h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
     font-size: 1.5em;
 }
@@ -127,8 +122,28 @@ body {
     text-align: center;
 }
 
-.activity {
+.separator {
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 1px;
+    margin: 15px 10px;
+    /* 15px top/bottom, 10px left/right to keep it from touching the edges */
+}
+
+
+/* Prevent margin collapse for the first element after the separator */
+
+.separator+.activity-block,
+.separator+.status,
+.separator+.show-more-btn {
+    margin-top: 0;
+}
+
+.activity-block {
     margin-top: 15px;
+}
+
+.activity {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -142,6 +157,67 @@ body {
 
 .activity-details {
     font-size: 0.9em;
+}
+
+.progress-container {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8em;
+    color: #b9bbbe;
+}
+
+.progress-bar-background {
+    flex-grow: 1;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #fff;
+    border-radius: 2px;
+}
+
+.show-more-btn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-weight: bold;
+    font-family: 'CustomFont', sans-serif;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.show-more-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.secondary-activities {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.4s ease-out;
+}
+
+.secondary-activities.hidden {
+    grid-template-rows: 0fr;
+}
+
+.secondary-activities-inner {
+    overflow: hidden;
+    transition: opacity 0.4s ease-out;
+    opacity: 1;
+}
+
+.secondary-activities.hidden .secondary-activities-inner {
+    opacity: 0;
 }
 
 #custom-cursor {

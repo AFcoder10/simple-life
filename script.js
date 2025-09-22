@@ -1,5 +1,6 @@
 const userId = "688983124868202496";
 const card = document.getElementById('status-card');
+let spotifyInterval = null;
 
 const LANYARD_API = `https://api.lanyard.rest/v1/users/${userId}`;
 
@@ -24,75 +25,104 @@ const fetchStatus = async() => {
 };
 
 const updateCard = (data) => {
-        const { discord_user, discord_status, activities, listening_to_spotify } = data;
+        const { discord_user, discord_status, activities, spotify } = data;
 
+        // --- Build Profile Section ---
         const avatarUrl = `https://cdn.discordapp.com/avatars/${discord_user.id}/${discord_user.avatar}.png?size=128`;
+        const statusIconHtml = `<img src="icons/${discord_status}.svg" alt="${discord_status}" class="status-icon">`;
 
-        // 1. Custom Status (e.g., "Chilling")
-        const customStatusActivity = activities.find(act => act.type === 4);
-        const statusHtml = customStatusActivity ?
-            `<div class="status">${customStatusActivity.emoji ? customStatusActivity.emoji.name + ' ' : ''}“${customStatusActivity.state}”</div>` :
-            '';
-
-        // 2. Main Activity (Spotify, Game, etc.)
-        let activityHtml = '';
-        // Prioritize Spotify
-        if (listening_to_spotify) {
-            activityHtml = `
-            <div class="activity">
-                <img src="${listening_to_spotify.album_art_url}" alt="Album Art" class="activity-icon">
-                <div class="activity-details">
-                    <strong>Listening to Spotify</strong><br>
-                    ${listening_to_spotify.song}<br>
-                    by ${listening_to_spotify.artist}
-                </div>
-            </div>
-        `;
-        } else {
-            // Find other primary activities (Playing, Watching, etc.)
-            const mainActivity = activities.find(act => act.type === 0 || act.type === 2 || act.type === 3);
-            if (mainActivity) {
-                let iconHtml = '';
-                if (mainActivity.assets && mainActivity.assets.large_image) {
-                    // Handle both standard assets and proxied media player assets
-                    const iconUrl = mainActivity.assets.large_image.startsWith('mp:') ?
-                        `https://media.discordapp.net/${mainActivity.assets.large_image.substring(3)}` :
-                        `https://cdn.discordapp.com/app-assets/${mainActivity.application_id}/${mainActivity.assets.large_image}.png`;
-                    iconHtml = `<img src="${iconUrl}" alt="${mainActivity.name}" class="activity-icon">`;
-                }
-
-                const activityPrefix = {
-                    0: 'Playing',
-                    2: 'Listening to',
-                    3: 'Watching'
-                }[mainActivity.type] || 'Playing';
-
-                activityHtml = `
-          <div class="activity">
-            ${iconHtml}
-            <div class="activity-details">
-              <strong>${activityPrefix} ${mainActivity.name}</strong><br>
-              ${mainActivity.details || ''}<br>
-              ${mainActivity.state || ''}
-            </div>
-          </div>
-        `;
-            }
-        }
-
-        card.innerHTML = `
+        const profileHtml = `
       <div class="profile">
-        <img src="${avatarUrl}" alt="${discord_user.username}'s avatar" class="avatar ${discord_status}">
+        <img src="${avatarUrl}" alt="${discord_user.username}'s avatar" class="avatar">
         <div class="user-info">
           <h2>
+            ${statusIconHtml}
             ${discord_user.global_name || discord_user.username}
             <span class="discriminator">${discord_user.discriminator !== '0' ? `#${discord_user.discriminator}` : ''}</span>
           </h2>
         </div>
       </div>
-      ${statusHtml}
-      ${activityHtml}
     `;
+
+    // --- Build Activities Section ---
+    if (spotifyInterval) {
+        clearInterval(spotifyInterval);
+        spotifyInterval = null;
+    }
+
+    const allActivities = [...activities];
+    let mainActivity = null;
+    let mainActivityHtml = '';
+    let secondaryActivities = [];
+
+    // Find main activity: Spotify > Game > Other
+    const spotifyIndex = allActivities.findIndex(a => a.id === 'spotify:1');
+    if (spotifyIndex !== -1) {
+        mainActivity = allActivities.splice(spotifyIndex, 1)[0];
+    } else {
+        const gameIndex = allActivities.findIndex(a => a.type === 0);
+        if (gameIndex !== -1) {
+            mainActivity = allActivities.splice(gameIndex, 1)[0];
+        } else {
+            // Fallback to first non-custom-status activity
+            const otherIndex = allActivities.findIndex(a => a.type !== 4);
+            if (otherIndex !== -1) {
+                mainActivity = allActivities.splice(otherIndex, 1)[0];
+            }
+        }
+    }
+
+    // The rest are secondary
+    secondaryActivities = allActivities;
+
+    // Render main activity
+    if (mainActivity) {
+        mainActivityHtml = renderActivity(mainActivity, spotify);
+    }
+
+    // Render secondary activities button and container
+    let secondaryActivitiesHtml = '';
+    if (secondaryActivities.length > 0) {
+        const secondaryHtmlList = secondaryActivities.map(act => renderActivity(act, spotify)).join('');
+
+        secondaryActivitiesHtml = `
+            <button id="show-more-btn" class="show-more-btn">Show Activity +${secondaryActivities.length}</button>
+            <div id="secondary-activities" class="secondary-activities hidden">
+                <div class="secondary-activities-inner">
+                    ${secondaryHtmlList}
+                </div>
+            </div>
+        `;
+    }
+
+    const allActivitiesHtml = mainActivityHtml + secondaryActivitiesHtml;
+    const separatorHtml = allActivitiesHtml ? `<div class="separator"></div>` : '';
+
+    // --- Final Assembly ---
+    card.innerHTML = profileHtml + separatorHtml + allActivitiesHtml;
+
+    // If Spotify is present, start its progress bar
+    if (mainActivity && mainActivity.id === 'spotify:1') {
+        updateSpotifyProgressBar(spotify.timestamps);
+    }
+
+    // Add event listener for the new button
+    const showMoreBtn = document.getElementById('show-more-btn');
+    if (showMoreBtn) {
+        showMoreBtn.addEventListener('click', (e) => {
+            const button = e.currentTarget;
+            const secondaryContainer = document.getElementById('secondary-activities');
+            const isHidden = secondaryContainer.classList.contains('hidden');
+
+            secondaryContainer.classList.toggle('hidden');
+
+            if (isHidden) {
+                button.textContent = secondaryActivities.length === 1 ? 'Hide Activity' : 'Hide Activities';
+            } else {
+                button.textContent = `Show Activity +${secondaryActivities.length}`;
+            }
+        });
+    }
 };
 
 // Initial fetch
@@ -100,6 +130,73 @@ fetchStatus();
 
 // Poll for status updates every 15 seconds.
 setInterval(fetchStatus, 15000);
+
+// Helper function to render a single activity
+function renderActivity(activity, spotifyData) {
+    // Handle Spotify
+    if (activity.id === 'spotify:1' && spotifyData) {
+        return `
+            <div class="activity-block">
+                <div class="activity">
+                    <img src="${spotifyData.album_art_url}" alt="Album Art" class="activity-icon">
+                    <div class="activity-details">
+                        <strong>Listening to Spotify</strong><br>
+                        ${spotifyData.song}<br>
+                        by ${spotifyData.artist}<br>
+                        on ${spotifyData.album}
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <span class="time-elapsed">0:00</span>
+                    <div class="progress-bar-background">
+                        <div class="progress-bar"></div>
+                    </div>
+                    <span class="time-total">0:00</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Handle Custom Status
+    if (activity.type === 4 && activity.state) {
+        const emoji = activity.emoji ? activity.emoji.name + ' ' : '';
+        return `<div class="status">${emoji}“${activity.state}”</div>`;
+    }
+
+    // Handle other activities (Playing, etc.)
+    if (activity.type === 0) {
+        let iconHtml = '';
+        if (activity.assets && activity.assets.large_image) {
+            let iconUrl = '';
+            if (activity.assets.large_image.startsWith('mp:')) {
+                iconUrl = `https://media.discordapp.net/${activity.assets.large_image.substring(3)}`;
+            } else if (activity.application_id) {
+                iconUrl = `https://cdn.discordapp.com/app-assets/${activity.application_id}/${activity.assets.large_image}.png`;
+            }
+            if (iconUrl) {
+                iconHtml = `<img src="${iconUrl}" alt="${activity.name}" class="activity-icon">`;
+            }
+        }
+
+        const detailsLine = activity.details ? `${activity.details}<br>` : '';
+        const stateLine = activity.state ? `${activity.state}` : '';
+
+        return `
+            <div class="activity-block">
+                <div class="activity">
+                    ${iconHtml}
+                    <div class="activity-details">
+                        <strong>Playing ${activity.name}</strong><br>
+                        ${detailsLine}
+                        ${stateLine}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    return ''; // Ignore other activity types
+}
 
 // --- Custom Cursor Logic ---
 const cursor = document.getElementById('custom-cursor');
@@ -167,6 +264,11 @@ const closePopup = () => {
 aboutBtn.addEventListener('click', openPopup);
 closeBtn.addEventListener('click', closePopup);
 overlay.addEventListener('click', closePopup);
+
+// Disable the default browser context menu
+window.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
 
 // --- Snowfall Animation ---
 const canvas = document.getElementById('snow-canvas');
@@ -236,3 +338,45 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 createSnowflakes();
 animateSnow();
+
+const formatTime = (ms) => {
+    if (isNaN(ms) || ms < 0) return '0:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+function updateSpotifyProgressBar(timestamps) {
+    if (spotifyInterval) clearInterval(spotifyInterval);
+
+    const progressBar = document.querySelector('.progress-bar');
+    const timeElapsedEl = document.querySelector('.time-elapsed');
+    const timeTotalEl = document.querySelector('.time-total');
+
+    if (!progressBar || !timeElapsedEl || !timeTotalEl) return;
+
+    const { start, end } = timestamps;
+    const duration = end - start;
+
+    timeTotalEl.textContent = formatTime(duration);
+
+    const update = () => {
+        const elapsed = Date.now() - start;
+
+        if (elapsed >= duration) {
+            timeElapsedEl.textContent = formatTime(duration);
+            progressBar.style.width = '100%';
+            if (spotifyInterval) clearInterval(spotifyInterval);
+            spotifyInterval = null;
+            return;
+        }
+
+        const progressPercent = (elapsed / duration) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+        timeElapsedEl.textContent = formatTime(elapsed);
+    };
+
+    update(); // Initial call
+    spotifyInterval = setInterval(update, 1000);
+}
