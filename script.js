@@ -139,3 +139,100 @@ const animateCursor = () => {
 
 // Start the animation
 animateCursor();
+
+// Fade cursor on window leave/enter
+document.body.addEventListener('mouseleave', () => {
+    cursor.style.opacity = 0;
+});
+document.body.addEventListener('mouseenter', () => {
+    cursor.style.opacity = 1;
+});
+
+// --- Popup Logic ---
+const aboutBtn = document.getElementById('about-me-btn');
+const closeBtn = document.getElementById('close-popup-btn');
+const popup = document.getElementById('about-me-popup');
+const overlay = document.getElementById('popup-overlay');
+
+const openPopup = () => {
+    popup.classList.add('visible');
+    overlay.classList.add('visible');
+};
+
+const closePopup = () => {
+    popup.classList.remove('visible');
+    overlay.classList.remove('visible');
+};
+
+aboutBtn.addEventListener('click', openPopup);
+closeBtn.addEventListener('click', closePopup);
+overlay.addEventListener('click', closePopup);
+
+// --- Snowfall Animation ---
+const canvas = document.getElementById('snow-canvas');
+const ctx = canvas.getContext('2d');
+
+let snowflakes = [];
+const numFlakes = 250; // Number of snowflakes
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+function createSnowflakes() {
+    snowflakes = [];
+    for (let i = 0; i < numFlakes; i++) {
+        snowflakes.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 3 + 1, // radius between 1 and 4
+            speed: Math.random() * 2 + 0.5, // speed between 0.5 and 2.5
+            drift: Math.random() * 2 - 1, // horizontal drift between -1 and 1
+            opacity: Math.random() * 0.5 + 0.3 // opacity between 0.3 and 0.8
+        });
+    }
+}
+
+function drawSnowflakes() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+
+    for (let i = 0; i < snowflakes.length; i++) {
+        const flake = snowflakes[i];
+
+        ctx.globalAlpha = flake.opacity;
+        ctx.beginPath();
+        ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1; // Reset global alpha
+}
+
+function updateSnowflakes() {
+    for (let i = 0; i < snowflakes.length; i++) {
+        const flake = snowflakes[i];
+
+        flake.y += flake.speed;
+        flake.x += flake.drift;
+
+        // Reset snowflake if it goes off the bottom of the screen
+        if (flake.y > canvas.height + flake.radius) {
+            flake.x = Math.random() * canvas.width;
+            flake.y = 0 - flake.radius; // Start just above the screen
+        }
+    }
+}
+
+function animateSnow() {
+    updateSnowflakes();
+    drawSnowflakes();
+    requestAnimationFrame(animateSnow);
+}
+
+// Initialize
+window.addEventListener('resize', resizeCanvas);
+
+resizeCanvas();
+createSnowflakes();
+animateSnow();
