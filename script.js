@@ -199,51 +199,55 @@ function renderActivity(activity, spotifyData) {
 }
 
 // --- Custom Cursor Logic ---
-const cursor = document.getElementById('custom-cursor');
 
-// Store target and current positions
-let mouseX = -100; // Start off-screen
-let mouseY = -100;
-let cursorX = -100;
-let cursorY = -100;
+// Only initialize custom cursor on non-touch devices (with a fine pointer)
+if (window.matchMedia("(pointer: fine)").matches) {
+    const cursor = document.getElementById('custom-cursor');
 
-// Easing factor (lower value = smoother/slower)
-const easing = 0.1;
+    // Store target and current positions
+    let mouseX = -100; // Start off-screen
+    let mouseY = -100;
+    let cursorX = -100;
+    let cursorY = -100;
 
-// Update target position on mouse move
-window.addEventListener('mousemove', e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-});
+    // Easing factor (lower value = smoother/slower)
+    const easing = 0.1;
 
-// Animation loop for smooth movement
-const animateCursor = () => {
-    // Calculate the distance to move
-    const dx = mouseX - cursorX;
-    const dy = mouseY - cursorY;
+    // Update target position on mouse move
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
 
-    // Update current position with easing
-    cursorX += dx * easing;
-    cursorY += dy * easing;
+    // Animation loop for smooth movement
+    const animateCursor = () => {
+        // Calculate the distance to move
+        const dx = mouseX - cursorX;
+        const dy = mouseY - cursorY;
 
-    // Apply the new position
-    cursor.style.left = `${cursorX}px`;
-    cursor.style.top = `${cursorY}px`;
+        // Update current position with easing
+        cursorX += dx * easing;
+        cursorY += dy * easing;
 
-    // Continue the loop
-    requestAnimationFrame(animateCursor);
-};
+        // Apply the new position
+        cursor.style.left = `${cursorX}px`;
+        cursor.style.top = `${cursorY}px`;
 
-// Start the animation
-animateCursor();
+        // Continue the loop
+        requestAnimationFrame(animateCursor);
+    };
 
-// Fade cursor on window leave/enter
-document.body.addEventListener('mouseleave', () => {
-    cursor.style.opacity = 0;
-});
-document.body.addEventListener('mouseenter', () => {
-    cursor.style.opacity = 1;
-});
+    // Start the animation
+    animateCursor();
+
+    // Fade cursor on window leave/enter
+    document.body.addEventListener('mouseleave', () => {
+        cursor.style.opacity = 0;
+    });
+    document.body.addEventListener('mouseenter', () => {
+        cursor.style.opacity = 1;
+    });
+}
 
 // --- Popup Logic ---
 const aboutBtn = document.getElementById('about-me-btn');
@@ -276,6 +280,9 @@ const ctx = canvas.getContext('2d');
 
 let snowflakes = [];
 const numFlakes = 250; // Number of snowflakes
+
+let gravityX = 0;
+let gravityY = 1;
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -312,18 +319,41 @@ function drawSnowflakes() {
 }
 
 function updateSnowflakes() {
-    for (let i = 0; i < snowflakes.length; i++) {
-        const flake = snowflakes[i];
+     for (let i = 0; i < snowflakes.length; i++) {
+         const flake = snowflakes[i];
 
-        flake.y += flake.speed;
-        flake.x += flake.drift;
+         flake.y += gravityY * flake.speed;
+         flake.x += gravityX * flake.speed + flake.drift;
 
-        // Reset snowflake if it goes off the bottom of the screen
-        if (flake.y > canvas.height + flake.radius) {
-            flake.x = Math.random() * canvas.width;
-            flake.y = 0 - flake.radius; // Start just above the screen
-        }
-    }
+         // Reset snowflake if it goes off-screen
+         const isOutOfBounds = flake.y > canvas.height + flake.radius ||
+             flake.y < -flake.radius ||
+             flake.x > canvas.width + flake.radius ||
+             flake.x < -flake.radius;
+
+         if (isOutOfBounds) {
+             // If it's out of bounds, reset it to the "top" relative to gravity
+             if (Math.abs(gravityX) > Math.abs(gravityY)) {
+                 // More horizontal than vertical
+                 if (gravityX > 0) { // Moving right
+                     flake.x = -flake.radius;
+                     flake.y = Math.random() * canvas.height;
+                 } else { // Moving left
+                     flake.x = canvas.width + flake.radius;
+                     flake.y = Math.random() * canvas.height;
+                 }
+             } else {
+                 // More vertical than horizontal (or equal)
+                 if (gravityY >= 0) { // Moving down
+                     flake.x = Math.random() * canvas.width;
+                     flake.y = -flake.radius;
+                 } else { // Moving up
+                     flake.x = Math.random() * canvas.width;
+                     flake.y = canvas.height + flake.radius;
+                 }
+             }
+         }
+     }
 }
 
 function animateSnow() {
@@ -332,12 +362,48 @@ function animateSnow() {
     requestAnimationFrame(animateSnow);
 }
 
+const handleOrientation = (event) => {
+    if (event.gamma === null || event.beta === null) return;
+
+    // Normalize gamma from [-90, 90] to [-1, 1] for X-axis gravity
+    const newGravityX = Math.max(-1, Math.min(1, event.gamma / 90));
+    // Normalize beta from [-90, 90] to [-1, 1] for Y-axis gravity
+    const newGravityY = Math.max(-1, Math.min(1, event.beta / 90));
+
+    // Use a low-pass filter to smooth out the gravity changes
+    const smoothingFactor = 0.1;
+    gravityX = gravityX * (1 - smoothingFactor) + newGravityX * smoothingFactor;
+    gravityY = gravityY * (1 - smoothingFactor) + newGravityY * smoothingFactor;
+};
+
+function initDeviceOrientation() {
+    if (window.DeviceOrientationEvent) {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13+ requires user permission
+            document.body.addEventListener('click', function requestPermission() {
+                DeviceOrientationEvent.requestPermission()
+                    .then(state => {
+                        if (state === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    }).catch(console.error);
+                document.body.removeEventListener('click', requestPermission);
+            });
+        } else {
+            // Non-iOS browsers
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+    }
+}
+
 // Initialize
 window.addEventListener('resize', resizeCanvas);
 
 resizeCanvas();
 createSnowflakes();
 animateSnow();
+
+initDeviceOrientation();
 
 const formatTime = (ms) => {
     if (isNaN(ms) || ms < 0) return '0:00';

@@ -390,3 +390,16 @@ body {
 #close-popup-btn:hover {
     color: white;
 }
+
+
+/* Disable custom cursor on mobile/touch devices */
+
+@media (pointer: coarse),
+(max-width: 768px) {
+    * {
+        cursor: auto !important;
+    }
+    #custom-cursor {
+        display: none !important;
+    }
+}
