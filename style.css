@@ -20,13 +20,14 @@
 
 html,
 body {
-    height: 100%;
+    min-height: 100%;
+    /* Allow body to grow beyond the viewport height */
     margin: 0;
     padding: 0;
     font-family: 'CustomFont', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #fff;
-    overflow: hidden;
-    /* Prevent scrollbars from background effects */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll but allow vertical */
 }
 
 body {
@@ -34,10 +35,13 @@ body {
     /* For pseudo-element positioning */
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    /* Align content to the top for scrolling */
     background: linear-gradient(-45deg, #000000, #1c1c1c, #0d0d0d);
     cursor: none;
     background-size: 400% 400%;
+    padding: 8vh 0;
+    /* Add vertical padding for spacing */
 }
 
 #snow-canvas {

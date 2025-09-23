@@ -25,6 +25,10 @@ const fetchStatus = async() => {
 };
 
 const updateCard = (data) => {
+        // Before re-rendering, check if the secondary activities are currently visible
+        const oldSecondaryContainer = document.getElementById('secondary-activities');
+        const wasSecondaryVisible = oldSecondaryContainer && !oldSecondaryContainer.classList.contains('hidden');
+
         const { discord_user, discord_status, activities, spotify } = data;
 
         // --- Build Profile Section ---
@@ -85,9 +89,13 @@ const updateCard = (data) => {
     if (secondaryActivities.length > 0) {
         const secondaryHtmlList = secondaryActivities.map(act => renderActivity(act, spotify)).join('');
 
+        const buttonText = wasSecondaryVisible ?
+            (secondaryActivities.length === 1 ? 'Hide Activity' : 'Hide Activities') :
+            `Show Activity +${secondaryActivities.length}`;
+
         secondaryActivitiesHtml = `
-            <button id="show-more-btn" class="show-more-btn">Show Activity +${secondaryActivities.length}</button>
-            <div id="secondary-activities" class="secondary-activities hidden">
+            <button id="show-more-btn" class="show-more-btn">${buttonText}</button>
+            <div id="secondary-activities" class="secondary-activities ${wasSecondaryVisible ? '' : 'hidden'}">
                 <div class="secondary-activities-inner">
                     ${secondaryHtmlList}
                 </div>
