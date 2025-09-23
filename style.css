@@ -45,7 +45,7 @@ body {
 }
 
 #snow-canvas {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -61,6 +61,8 @@ body {
     gap: 20px;
     width: 90%;
     max-width: 400px;
+    margin-top: 40px;
+    /* Adds extra space below the top bar */
 }
 
 #status-card {
@@ -305,29 +307,142 @@ body {
     width: 24px;
 }
 
-#about-me-btn {
+#top-bar {
     position: fixed;
-    top: 25px;
-    left: 25px;
+    top: 0;
+    left: 0;
+    width: 100%;
     z-index: 100;
-    /* Glassmorphism style */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 25px;
+    background: rgba(25, 25, 25, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-ui-element {
     background: transparent;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    /* Text and layout */
     color: white;
     font-family: 'CustomFont', sans-serif;
     font-weight: bold;
-    padding: 15px 25px;
+    padding: 8px 18px;
     transition: background 0.3s ease, transform 0.2s ease;
+    text-align: center;
 }
 
-#about-me-btn:hover {
+.glass-ui-element:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
+}
+
+#time-widget {
+    position: relative;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    cursor: pointer;
+}
+
+#time-header {
+    padding: 8px 18px;
+    /* Gives the button height for centering */
+    display: flex;
+    justify-content: center;
+    /* Center horizontally */
+    align-items: center;
+    /* Center vertically */
+    transition: padding 0.4s ease-out;
+    /* Animate the padding change */
+    position: relative;
+    /* For the separator line */
+}
+
+
+/* The separator line, hidden by default */
+
+#time-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 25px;
+    right: 25px;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease-out 0.1s;
+}
+
+#time-details-wrapper {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    width: 100%;
+    display: grid;
+    grid-template-rows: 0fr;
+    /* When closing, delay hiding visibility until after the grid animation */
+    transition: grid-template-rows 0.4s ease-out, opacity 0.3s ease-out, visibility 0s linear 0.4s;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#time-widget.expanded #time-header {
+    /* On expand, change padding to move the text up and act as a header */
+    padding-bottom: 5px;
+}
+
+
+/* Show the separator line on expand */
+
+#time-widget.expanded #time-header::after {
+    transform: scaleX(1);
+}
+
+#time-widget.expanded #time-details-wrapper {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    /* When opening, make visibility immediate */
+    transition: grid-template-rows 0.4s ease-out, opacity 0.3s ease-out, visibility 0s linear 0s;
+}
+
+#time-details-content {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 15px 25px;
+    /* Add glass styles for the dropdown panel */
+    background: rgba(25, 25, 25, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+#time-details-content>* {
+    opacity: 0;
+    transition: opacity 0.3s ease-out 0.1s;
+}
+
+#time-widget.expanded #time-details-content>* {
+    opacity: 1;
+}
+
+#time-string {
+    font-size: 1.2em;
 }
 
 #popup-overlay {

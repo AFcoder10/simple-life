@@ -277,6 +277,52 @@ aboutBtn.addEventListener('click', openPopup);
 closeBtn.addEventListener('click', closePopup);
 overlay.addEventListener('click', closePopup);
 
+// --- Time Display Logic ---
+const timeWidget = document.getElementById('time-widget');
+const timeDetailsContent = document.querySelector('#time-details-content');
+
+function updateTime() {
+    const now = new Date();
+    // Options to get a 12-hour format with seconds for the IST timezone (GMT+5:30)
+    const options = {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true
+    };
+    const timeString = now.toLocaleString('en-US', options);
+
+    // Get 24-hour format to determine time of day
+    const hour24 = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+
+    let greeting = '';
+    if (hour24 >= 6 && hour24 < 12) { // 6 AM to 11:59 AM
+        greeting = 'Morning';
+    } else if (hour24 >= 12 && hour24 < 17) { // 12 PM to 4:59 PM
+        greeting = 'Noon';
+    } else if (hour24 >= 17 && hour24 < 21) { // 5 PM to 8:59 PM
+        greeting = 'Evening';
+    } else if (hour24 >= 21) { // 9 PM to 11:59 PM
+        greeting = 'Night';
+    } else { // 12 AM to 5:59 AM
+        greeting = 'Midnight';
+    }
+
+    timeDetailsContent.innerHTML = `
+        <div id="time-string">${timeString} (IST)</div>
+        <div id="time-greeting">${greeting}</div>
+    `;
+}
+
+timeWidget.addEventListener('click', () => {
+    timeWidget.classList.toggle('expanded');
+});
+
+// Update the time immediately and then every second
+updateTime();
+setInterval(updateTime, 1000);
+
 // Disable the default browser context menu
 window.addEventListener('contextmenu', (e) => {
     e.preventDefault();
