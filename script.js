@@ -257,6 +257,46 @@ if (window.matchMedia("(pointer: fine)").matches) {
     });
 }
 
+// --- Hero Text 3D Effect ---
+const heroText = document.getElementById('hero-text');
+const heroContainer = document.querySelector('.hero-container');
+
+function handleInteraction(x, y) {
+    const {
+        left,
+        top,
+        width,
+        height
+    } = heroContainer.getBoundingClientRect();
+    const relativeX = x - left;
+    const relativeY = y - top;
+
+    // Calculate rotation values. Range from -15 to 15 degrees.
+    const rotateY = 15 * ((relativeX / width) - 0.5) * 2;
+    const rotateX = -15 * ((relativeY / height) - 0.5) * 2;
+
+    heroText.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+}
+
+// Mouse interaction
+if (window.matchMedia("(pointer: fine)").matches) {
+    heroContainer.addEventListener('mousemove', (e) => {
+        handleInteraction(e.clientX, e.clientY);
+    });
+    heroContainer.addEventListener('mouseleave', () => {
+        heroText.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    });
+}
+
+// Touch interaction
+heroContainer.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent scrolling while dragging on the text
+    handleInteraction(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+
+heroContainer.addEventListener('touchend', () => {
+    heroText.style.transform = 'rotateX(0deg) rotateY(0deg)';
+});
 // --- Popup Logic ---
 const aboutBtn = document.getElementById('about-me-btn');
 const closeBtn = document.getElementById('close-popup-btn');

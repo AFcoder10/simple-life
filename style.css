@@ -34,9 +34,12 @@ body {
     position: relative;
     /* For pseudo-element positioning */
     display: flex;
+    flex-direction: column;
+    /* Stack children vertically */
     justify-content: center;
-    align-items: flex-start;
-    /* Align content to the top for scrolling */
+    /* Center the whole block vertically */
+    align-items: center;
+    /* Center horizontally */
     background: linear-gradient(-45deg, #000000, #1c1c1c, #0d0d0d);
     cursor: none;
     background-size: 400% 400%;
@@ -58,10 +61,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 25px;
     width: 90%;
     max-width: 400px;
-    margin-top: 40px;
+    margin-top: 0;
     /* Adds extra space below the top bar */
 }
 
@@ -302,6 +305,36 @@ body {
     transform: translateY(-2px);
 }
 
+.hero-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Remove top margin, body flex handles centering */
+    margin-top: 0;
+    margin-bottom: 3vh;
+    perspective: 1000px;
+    /* For 3D effect */
+}
+
+#hero-text {
+    font-size: clamp(3rem, 15vw, 6rem);
+    /* Responsive font size */
+    font-weight: bold;
+    margin: 0;
+    /* Make the text fill transparent to create the glass effect */
+    color: transparent;
+    /* Use text-shadow to create the frosted glass look */
+    text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4), /* Sharp inner highlight */
+    0 0 15px rgba(255, 255, 255, 0.15), /* Soft outer glow */
+    1px 1px 2px rgba(0, 0, 0, 0.5);
+    /* Subtle drop shadow for depth */
+    letter-spacing: 2px;
+    /* Smooth transition for the transform */
+    transition: transform 0.1s linear, text-shadow 0.3s ease;
+    /* Initial state, will be updated by JS */
+    transform: rotateX(0deg) rotateY(0deg);
+}
+
 .social-logo {
     height: 24px;
     width: 24px;
@@ -520,5 +553,32 @@ body {
     }
     #custom-cursor {
         display: none !important;
+    }
+}
+
+
+/* Further mobile optimizations */
+
+@media (max-width: 480px) {
+    body {
+        /* Reduce vertical padding on small screens to give content more space */
+        padding: 5vh 0;
+    }
+    #top-bar {
+        /* Reduce horizontal padding */
+        padding: 10px 15px;
+    }
+    .glass-ui-element {
+        /* Make buttons slightly smaller */
+        padding: 6px 14px;
+        font-size: 0.9rem;
+    }
+    #status-card {
+        padding: 20px;
+    }
+    .avatar {
+        /* Reduce avatar size */
+        width: 60px;
+        height: 60px;
     }
 }
