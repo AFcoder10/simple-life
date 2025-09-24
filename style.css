@@ -43,8 +43,9 @@ body {
     background: linear-gradient(-45deg, #000000, #1c1c1c, #0d0d0d);
     cursor: none;
     background-size: 400% 400%;
-    padding: 8vh 0;
-    /* Add vertical padding for spacing */
+    /* Add padding to account for the fixed top bar and provide bottom spacing */
+    padding-top: 80px;
+    padding-bottom: 5vh;
 }
 
 #snow-canvas {
@@ -562,7 +563,9 @@ body {
 @media (max-width: 480px) {
     body {
         /* Reduce vertical padding on small screens to give content more space */
-        padding: 5vh 0;
+        /* Keep top padding to avoid overlap, reduce bottom padding */
+        padding-top: 70px;
+        padding-bottom: 5vh;
     }
     #top-bar {
         /* Reduce horizontal padding */
