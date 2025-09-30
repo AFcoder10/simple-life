@@ -15,7 +15,6 @@
 
 * {
     box-sizing: border-box;
-    cursor: none;
 }
 
 html,
@@ -41,11 +40,18 @@ body {
     align-items: center;
     /* Center horizontally */
     background: linear-gradient(-45deg, #000000, #1c1c1c, #0d0d0d);
-    cursor: none;
     background-size: 400% 400%;
     /* Add padding to account for the fixed top bar and provide bottom spacing */
     padding-top: 80px;
     padding-bottom: 5vh;
+}
+
+
+/* When custom cursor is on, hide the system cursor on all elements */
+
+body.custom-cursor-enabled,
+body.custom-cursor-enabled * {
+    cursor: none !important;
 }
 
 #snow-canvas {
@@ -357,6 +363,12 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .glass-ui-element {
     background: transparent;
     backdrop-filter: blur(10px);
@@ -370,6 +382,11 @@ body {
     padding: 8px 18px;
     transition: background 0.3s ease, transform 0.2s ease;
     text-align: center;
+}
+
+#menu-btn {
+    padding: 8px 12px;
+    /* Adjust padding for icon button */
 }
 
 .glass-ui-element:hover {
@@ -545,22 +562,173 @@ body {
 }
 
 
+/* --- Sidebar Menu --- */
+
+#menu-btn .hamburger-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 24px;
+    height: 20px;
+}
+
+#menu-btn .hamburger-icon span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s ease-in-out;
+}
+
+#sidebar-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 280px;
+    background: rgba(20, 20, 30, 0.8);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 10001;
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    padding: 80px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#sidebar-menu.visible {
+    transform: translateX(0);
+}
+
+.sidebar-link {
+    color: white;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+
+/* Toggle Switch Styles */
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: .4s;
+    border-radius: 28px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #4CAF50;
+    /* A nice green for 'on' state */
+}
+
+input:checked+.slider:before {
+    transform: translateX(22px);
+}
+
+#viewer-count-container {
+    margin-top: auto;
+    /* Pushes this element to the bottom of the flex container */
+    padding: 20px 15px 10px;
+    /* Add some padding */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #b9bbbe;
+    /* A softer white for secondary text */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #4CAF50;
+    /* A nice green for 'live' status */
+    border-radius: 50%;
+    animation: pulse-animation 1.5s infinite;
+}
+
+@keyframes pulse-animation {
+    0% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    }
+}
+
+
 /* Disable custom cursor on mobile/touch devices */
 
-@media (pointer: coarse),
-(max-width: 768px) {
-    * {
-        cursor: auto !important;
-    }
+@media (pointer: coarse) {
     #custom-cursor {
         display: none !important;
+    }
+    /* Hide the cursor toggle option on touch devices */
+    #cursor-toggle-option {
+        display: none;
     }
 }
 
 
 /* Further mobile optimizations */
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     body {
         /* Reduce vertical padding on small screens to give content more space */
         /* Keep top padding to avoid overlap, reduce bottom padding */
@@ -571,6 +739,9 @@ body {
         /* Reduce horizontal padding */
         padding: 10px 15px;
     }
+}
+
+@media (max-width: 480px) {
     .glass-ui-element {
         /* Make buttons slightly smaller */
         padding: 6px 14px;

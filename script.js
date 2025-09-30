@@ -2,6 +2,12 @@ const userId = "688983124868202496";
 const card = document.getElementById('status-card');
 let spotifyInterval = null;
 
+// Global variables for preferences
+let isCursorEnabled; // No initial value, will be set by loadPreferences
+let animateCursor = () => {}; // Placeholder for cursor animation function
+let isAnimationEnabled; // No initial value, will be set by loadPreferences
+let animationFrameId = null; // For snow animation frame ID
+
 const LANYARD_API = `https://api.lanyard.rest/v1/users/${userId}`;
 
 const fetchStatus = async() => {
@@ -207,55 +213,30 @@ function renderActivity(activity, spotifyData) {
 }
 
 // --- Custom Cursor Logic ---
-
-// Only initialize custom cursor on non-touch devices (with a fine pointer)
-if (window.matchMedia("(pointer: fine)").matches) {
+const setupCursor = () => {
     const cursor = document.getElementById('custom-cursor');
-
-    // Store target and current positions
-    let mouseX = -100; // Start off-screen
-    let mouseY = -100;
-    let cursorX = -100;
-    let cursorY = -100;
-
-    // Easing factor (lower value = smoother/slower)
+    let mouseX = -100,
+        mouseY = -100;
+    let cursorX = -100,
+        cursorY = -100;
     const easing = 0.1;
 
-    // Update target position on mouse move
     window.addEventListener('mousemove', e => {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
 
-    // Animation loop for smooth movement
-    const animateCursor = () => {
-        // Calculate the distance to move
+    animateCursor = () => {
+        if (!isCursorEnabled) return;
         const dx = mouseX - cursorX;
         const dy = mouseY - cursorY;
-
-        // Update current position with easing
         cursorX += dx * easing;
         cursorY += dy * easing;
-
-        // Apply the new position
         cursor.style.left = `${cursorX}px`;
         cursor.style.top = `${cursorY}px`;
-
-        // Continue the loop
         requestAnimationFrame(animateCursor);
     };
-
-    // Start the animation
-    animateCursor();
-
-    // Fade cursor on window leave/enter
-    document.body.addEventListener('mouseleave', () => {
-        cursor.style.opacity = 0;
-    });
-    document.body.addEventListener('mouseenter', () => {
-        cursor.style.opacity = 1;
-    });
-}
+};
 
 // --- Hero Text 3D Effect ---
 const heroText = document.getElementById('hero-text');
@@ -313,9 +294,45 @@ const closePopup = () => {
     overlay.classList.remove('visible');
 };
 
-aboutBtn.addEventListener('click', openPopup);
+aboutBtn.addEventListener('click', () => {
+    openPopup();
+});
 closeBtn.addEventListener('click', closePopup);
-overlay.addEventListener('click', closePopup);
+
+// --- Sidebar Menu Logic ---
+const menuBtn = document.getElementById('menu-btn');
+const sidebar = document.getElementById('sidebar-menu');
+
+const openSidebar = () => {
+    sidebar.classList.add('visible');
+    overlay.classList.add('visible');
+};
+
+const closeSidebar = () => {
+    sidebar.classList.remove('visible');
+    // Only hide overlay if popup is also not visible
+    if (!popup.classList.contains('visible')) {
+        overlay.classList.remove('visible');
+    }
+};
+
+menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent click from closing it immediately
+    if (sidebar.classList.contains('visible')) {
+        closeSidebar();
+    } else {
+        openSidebar();
+    }
+});
+
+overlay.addEventListener('click', () => {
+    closePopup();
+    closeSidebar();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === "Escape") closeSidebar();
+});
 
 // --- Time Display Logic ---
 const timeWidget = document.getElementById('time-widget');
@@ -367,16 +384,6 @@ setInterval(updateTime, 1000);
 window.addEventListener('contextmenu', (e) => {
     e.preventDefault();
 });
-
-// --- Snowfall Animation ---
-const canvas = document.getElementById('snow-canvas');
-const ctx = canvas.getContext('2d');
-
-let snowflakes = [];
-const numFlakes = 250; // Number of snowflakes
-
-let gravityX = 0;
-let gravityY = 1;
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -451,9 +458,31 @@ function updateSnowflakes() {
 }
 
 function animateSnow() {
+    if (!isAnimationEnabled) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        animationFrameId = null;
+        return;
+    }
     updateSnowflakes();
     drawSnowflakes();
-    requestAnimationFrame(animateSnow);
+    animationFrameId = requestAnimationFrame(animateSnow);
+}
+
+// --- Snowfall Animation ---
+const canvas = document.getElementById('snow-canvas');
+const ctx = canvas.getContext('2d');
+const numFlakes = 250; // Number of snowflakes
+let snowflakes = [];
+let gravityX = 0;
+let gravityY = 1;
+
+function stopSnow() {
+    isAnimationEnabled = false;
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 const handleOrientation = (event) => {
@@ -493,11 +522,104 @@ function initDeviceOrientation() {
 // Initialize
 window.addEventListener('resize', resizeCanvas);
 
+// --- Sidebar Toggles Logic ---
+const cursorToggle = document.getElementById('cursor-toggle');
+const animationToggle = document.getElementById('animation-toggle');
+
+// Function to load preferences from localStorage
+const loadPreferences = () => {
+    // Cursor preference
+    const savedCursorPref = localStorage.getItem('cursorEnabled');
+    // Default to true if no preference is saved
+    isCursorEnabled = savedCursorPref !== null ? savedCursorPref === 'true' : true;
+    if (cursorToggle) {
+        cursorToggle.checked = isCursorEnabled;
+    }
+
+    // Animation preference
+    const savedAnimationPref = localStorage.getItem('animationEnabled');
+    // Default to true if no preference is saved
+    isAnimationEnabled = savedAnimationPref !== null ? savedAnimationPref === 'true' : true;
+    if (animationToggle) {
+        animationToggle.checked = isAnimationEnabled;
+    }
+};
+
+// Load preferences immediately after toggle elements are available
+loadPreferences();
+
+// Apply initial states based on loaded preferences
+// Custom Cursor Initialization
+if (window.matchMedia("(pointer: fine)").matches) {
+    setupCursor(); // Always setup cursor event listeners and define animateCursor
+
+    const customCursor = document.getElementById('custom-cursor');
+    if (isCursorEnabled) {
+        document.body.classList.add('custom-cursor-enabled');
+        animateCursor(); // Start animation only if enabled
+    } else {
+        document.body.classList.remove('custom-cursor-enabled');
+        if (customCursor) customCursor.style.display = 'none';
+    }
+
+    // Fade cursor on window leave/enter
+    document.body.addEventListener('mouseleave', () => {
+        if (customCursor) customCursor.style.opacity = 0;
+    });
+    document.body.addEventListener('mouseenter', () => {
+        if (isCursorEnabled && customCursor) { // Only show if currently enabled
+            customCursor.style.opacity = 1;
+        }
+    });
+} else {
+    // If not a fine pointer device, ensure custom cursor is disabled
+    isCursorEnabled = false; // Force disable for coarse pointers
+    if (cursorToggle) {
+        cursorToggle.checked = false;
+        cursorToggle.disabled = true; // Disable the toggle itself
+    }
+    document.body.classList.remove('custom-cursor-enabled'); // Ensure no custom cursor class
+    const customCursor = document.getElementById('custom-cursor');
+    if (customCursor) customCursor.style.display = 'none';
+}
+
+// Snowfall Animation Initialization
 resizeCanvas();
 createSnowflakes();
-animateSnow();
+if (isAnimationEnabled) {
+    animateSnow();
+} else {
+    stopSnow(); // Ensure animation is stopped and canvas cleared if preference is off
+}
 
 initDeviceOrientation();
+
+cursorToggle.addEventListener('change', (e) => {
+    isCursorEnabled = e.target.checked;
+    localStorage.setItem('cursorEnabled', isCursorEnabled); // Save preference
+    document.body.classList.toggle('custom-cursor-enabled', isCursorEnabled);
+
+    const customCursor = document.getElementById('custom-cursor');
+    if (isCursorEnabled) {
+        customCursor.style.display = 'block';
+        // Restart animation if it was stopped
+        if (window.matchMedia("(pointer: fine)").matches) {
+            animateCursor();
+        }
+    } else {
+        customCursor.style.display = 'none';
+    }
+});
+
+animationToggle.addEventListener('change', (e) => {
+    isAnimationEnabled = e.target.checked;
+    localStorage.setItem('animationEnabled', isAnimationEnabled); // Save preference
+    if (isAnimationEnabled && !animationFrameId) {
+        animateSnow(); // Restart animation
+    } else if (!isAnimationEnabled) {
+        stopSnow(); // Stop animation and clear canvas
+    }
+});
 
 const formatTime = (ms) => {
     if (isNaN(ms) || ms < 0) return '0:00';
@@ -540,3 +662,25 @@ function updateSpotifyProgressBar(timestamps) {
     update(); // Initial call
     spotifyInterval = setInterval(update, 1000);
 }
+
+// --- Simulated Viewer Count ---
+const viewerCountEl = document.getElementById('viewer-count');
+let currentViewers = 1;
+
+function simulateViewerCount() {
+    // Fluctuate the number by -1, 0, or 1
+    const fluctuation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+    currentViewers += fluctuation;
+
+    // Ensure the count doesn't drop below 1
+    if (currentViewers < 1) {
+        currentViewers = 1;
+    }
+
+    if (viewerCountEl) {
+        viewerCountEl.textContent = currentViewers;
+    }
+}
+
+simulateViewerCount(); // Initial call
+setInterval(simulateViewerCount, 4000); // Update every 4 seconds

@@ -12,7 +12,16 @@
     <canvas id="snow-canvas"></canvas>
 
     <header id="top-bar">
-        <button id="about-me-btn" class="glass-ui-element">About Me</button>
+        <div class="top-bar-left">
+            <button id="menu-btn" class="glass-ui-element" title="Menu">
+                <div class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </button>
+            <button id="about-me-btn" class="glass-ui-element">About Me</button>
+        </div>
         <div id="time-widget" class="glass-ui-element">
             <div id="time-header">My current time</div>
             <div id="time-details-wrapper">
@@ -20,6 +29,27 @@
             </div>
         </div>
     </header>
+
+    <div id="sidebar-menu">
+        <div class="sidebar-option" id="cursor-toggle-option">
+            <span>Custom Cursor</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="cursor-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="sidebar-option">
+            <span>BG Animation</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="animation-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div id="viewer-count-container">
+            <span class="live-indicator"></span>
+            <span id="viewer-count-text"><span id="viewer-count">1</span> watching</span>
+        </div>
+    </div>
 
     <div id="popup-overlay"></div>
     <div id="about-me-popup">
