@@ -471,7 +471,8 @@ function animateSnow() {
 // --- Snowfall Animation ---
 const canvas = document.getElementById('snow-canvas');
 const ctx = canvas.getContext('2d');
-const numFlakes = 250; // Number of snowflakes
+// Dynamically set snowflake count based on screen size for performance
+const numFlakes = window.innerWidth <= 768 ? 75 : 250;
 let snowflakes = [];
 let gravityX = 0;
 let gravityY = 1;
