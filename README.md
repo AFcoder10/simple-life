@@ -1,2 +1,2 @@
 # simple-life
-hello g
+personal website
