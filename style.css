@@ -270,16 +270,20 @@ body.custom-cursor-enabled * {
 }
 
 @keyframes liquid-shine {
+
     0%,
     100% {
         transform: translate(-30%, -30%);
     }
+
     25% {
         transform: translate(30%, -30%);
     }
+
     50% {
         transform: translate(30%, 30%);
     }
+
     75% {
         transform: translate(-30%, 30%);
     }
@@ -331,17 +335,125 @@ body.custom-cursor-enabled * {
     /* Make the text fill transparent to create the glass effect */
     color: transparent;
     /* Use text-shadow to create the frosted glass look */
-    text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4), /* Sharp inner highlight */
-    0 0 15px rgba(255, 255, 255, 0.15), /* Soft outer glow */
-    1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4),
+        /* Sharp inner highlight */
+        0 0 15px rgba(255, 255, 255, 0.15),
+        /* Soft outer glow */
+        1px 1px 2px rgba(0, 0, 0, 0.5);
     /* Subtle drop shadow for depth */
     letter-spacing: 2px;
     /* Smooth transition for the transform */
-    transition: transform 0.1s linear, text-shadow 0.3s ease;
+    transition: transform 0.1s linear, text-shadow 0.3s ease, filter 0.3s ease;
     will-change: transform;
     /* Hint for browser optimization */
     /* Initial state, will be updated by JS */
     transform: rotateX(0deg) rotateY(0deg);
+    cursor: pointer;
+    user-select: none;
+    /* Prevent text selection on interaction */
+    position: relative;
+    /* For pseudo-elements */
+}
+
+/* Enhanced logo interaction states */
+#hero-text:hover {
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.6),
+        0 0 20px rgba(255, 255, 255, 0.25),
+        0 0 40px rgba(255, 255, 255, 0.1),
+        2px 2px 4px rgba(0, 0, 0, 0.6);
+    filter: brightness(1.1);
+}
+
+#hero-text:active {
+    transform: scale(0.98) rotateX(0deg) rotateY(0deg);
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.8),
+        0 0 25px rgba(255, 255, 255, 0.3),
+        0 0 50px rgba(255, 255, 255, 0.15),
+        3px 3px 6px rgba(0, 0, 0, 0.7);
+    filter: brightness(1.2);
+}
+
+/* Touch interaction feedback */
+#hero-text.touch-active {
+    transform: scale(0.95) rotateX(0deg) rotateY(0deg);
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.8),
+        0 0 25px rgba(255, 255, 255, 0.3),
+        0 0 50px rgba(255, 255, 255, 0.15),
+        3px 3px 6px rgba(0, 0, 0, 0.7);
+    filter: brightness(1.2);
+}
+
+/* Ripple effect for touch interactions */
+#hero-text::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+#hero-text.ripple::before {
+    width: 300px;
+    height: 300px;
+    opacity: 1;
+}
+
+/* Glow effect for special interactions */
+#hero-text.glow {
+    animation: logoGlow 0.8s ease-out;
+}
+
+@keyframes logoGlow {
+    0% {
+        text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4),
+            0 0 15px rgba(255, 255, 255, 0.15),
+            1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    50% {
+        text-shadow: 0 0 4px rgba(255, 255, 255, 0.8),
+            0 0 30px rgba(255, 255, 255, 0.4),
+            0 0 60px rgba(255, 255, 255, 0.2),
+            2px 2px 4px rgba(0, 0, 0, 0.6);
+        filter: brightness(1.3);
+    }
+
+    100% {
+        text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4),
+            0 0 15px rgba(255, 255, 255, 0.15),
+            1px 1px 2px rgba(0, 0, 0, 0.5);
+        filter: brightness(1);
+    }
+}
+
+/* Pulse animation for attention */
+#hero-text.pulse {
+    animation: logoPulse 2s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+
+    0%,
+    100% {
+        text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.4),
+            0 0 15px rgba(255, 255, 255, 0.15),
+            1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    50% {
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.6),
+            0 0 20px rgba(255, 255, 255, 0.25),
+            0 0 40px rgba(255, 255, 255, 0.1),
+            2px 2px 4px rgba(0, 0, 0, 0.6);
+    }
 }
 
 .social-logo {
@@ -720,6 +832,7 @@ input:checked+.slider:before {
         transform: scale(1);
         opacity: 0.7;
     }
+
     100% {
         transform: scale(2.5);
         opacity: 0;
@@ -733,6 +846,7 @@ input:checked+.slider:before {
     #custom-cursor {
         display: none !important;
     }
+
     /* Hide the cursor toggle option on touch devices */
     #cursor-toggle-option {
         display: none;
@@ -740,33 +854,343 @@ input:checked+.slider:before {
 }
 
 
-/* Further mobile optimizations */
+/* Comprehensive Mobile Optimizations */
 
+/* Base mobile optimizations */
 @media (max-width: 768px) {
     body {
-        /* Reduce vertical padding on small screens to give content more space */
-        /* Keep top padding to avoid overlap, reduce bottom padding */
-        padding-top: 70px;
-        padding-bottom: 5vh;
+        padding-top: 60px;
+        padding-bottom: 3vh;
+        /* Better mobile spacing */
     }
+
     #top-bar {
-        /* Reduce horizontal padding */
-        padding: 10px 15px;
+        padding: 8px 12px;
+        /* Tighter mobile header */
+    }
+
+    .content-wrapper {
+        width: 95%;
+        max-width: 350px;
+        gap: 20px;
+        /* Better mobile spacing */
+    }
+
+    #hero-text {
+        font-size: clamp(2.5rem, 12vw, 4rem);
+        letter-spacing: 1px;
+        /* More mobile-friendly sizing */
+    }
+
+    .hero-container {
+        margin-bottom: 2vh;
+        /* Reduced margin for mobile */
+    }
+
+    .social-link {
+        padding: 12px 15px;
+        font-size: 0.95rem;
+        /* Better touch targets */
+    }
+
+    .social-logo {
+        height: 22px;
+        width: 22px;
+        /* Slightly smaller icons for mobile */
+    }
+
+    #status-card {
+        padding: 20px;
+        min-height: 120px;
+        /* More compact on mobile */
+    }
+
+    .glass-ui-element {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        /* Better mobile button sizing */
+    }
+
+    #sidebar-menu {
+        width: 100%;
+        max-width: 300px;
+        /* Full width on mobile */
+    }
+
+    .sidebar-option {
+        padding: 12px 15px;
+        font-size: 1rem;
+    }
+
+    .toggle-switch {
+        width: 45px;
+        height: 25px;
+        /* Slightly smaller toggles */
+    }
+
+    .slider:before {
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(20px);
+    }
+
+    #about-me-popup {
+        width: 95%;
+        max-width: 400px;
+        padding: 25px;
+        /* Better mobile popup sizing */
+    }
+
+    #time-details-content {
+        padding: 12px 20px;
+        /* Tighter mobile time widget */
     }
 }
 
+/* Small mobile devices */
 @media (max-width: 480px) {
+    body {
+        padding-top: 55px;
+        padding-bottom: 2vh;
+    }
+
+    #top-bar {
+        padding: 6px 10px;
+    }
+
+    .content-wrapper {
+        width: 98%;
+        max-width: 320px;
+        gap: 15px;
+    }
+
+    #hero-text {
+        font-size: clamp(2rem, 10vw, 3.5rem);
+        letter-spacing: 0.5px;
+    }
+
     .glass-ui-element {
-        /* Make buttons slightly smaller */
-        padding: 6px 14px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    #status-card {
+        padding: 15px;
+        min-height: 100px;
+    }
+
+    .avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .user-info h2 {
+        font-size: 1.2em;
+    }
+
+    .social-link {
+        padding: 10px 12px;
         font-size: 0.9rem;
     }
-    #status-card {
+
+    .social-logo {
+        height: 20px;
+        width: 20px;
+    }
+
+    .activity-icon {
+        width: 35px;
+        height: 35px;
+    }
+
+    .activity-details {
+        font-size: 0.85em;
+    }
+
+    #sidebar-menu {
+        padding: 60px 15px 15px;
+    }
+
+    .sidebar-option {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+    #about-me-popup {
         padding: 20px;
+        width: 98%;
     }
-    .avatar {
-        /* Reduce avatar size */
-        width: 60px;
-        height: 60px;
+
+    #time-details-content {
+        padding: 10px 15px;
     }
+
+    #time-string {
+        font-size: 1.1em;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+    #hero-text {
+        font-size: clamp(1.8rem, 9vw, 3rem);
+    }
+
+    .content-wrapper {
+        width: 100%;
+        max-width: 300px;
+        gap: 12px;
+    }
+
+    .social-link {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    #status-card {
+        padding: 12px;
+        min-height: 90px;
+    }
+
+    .glass-ui-element {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Landscape mobile optimization */
+@media (max-height: 500px) and (orientation: landscape) {
+    body {
+        padding-top: 50px;
+        padding-bottom: 1vh;
+    }
+
+    .hero-container {
+        margin-bottom: 1vh;
+    }
+
+    #hero-text {
+        font-size: clamp(2rem, 8vh, 3rem);
+    }
+
+    .content-wrapper {
+        gap: 10px;
+    }
+
+    #status-card {
+        padding: 15px;
+        min-height: 80px;
+    }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+    .social-link {
+        min-height: 44px;
+        /* Minimum touch target size */
+    }
+
+    .glass-ui-element {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-option {
+        min-height: 44px;
+    }
+
+    .toggle-switch {
+        min-height: 44px;
+        min-width: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+    #menu-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    #close-popup-btn {
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* Mobile optimization classes */
+.mobile-optimized {
+    /* Reduce animation complexity on mobile */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+.mobile-optimized #hero-text {
+    /* Simpler animations on mobile */
+    transition: transform 0.2s ease, text-shadow 0.3s ease, filter 0.3s ease;
+}
+
+.mobile-optimized .social-link {
+    /* Smoother transitions on mobile */
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-optimized .glass-ui-element {
+    /* Smoother transitions on mobile */
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+/* Low-end device optimizations */
+.low-end-device {
+    /* Disable heavy effects on low-end devices */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
+.low-end-device .glass-ui-element,
+.low-end-device .social-link,
+.low-end-device #status-card,
+.low-end-device #about-me-popup,
+.low-end-device #sidebar-menu,
+.low-end-device #time-details-content {
+    /* Fallback for devices that don't support backdrop-filter */
+    background: rgba(25, 25, 25, 0.8) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.low-end-device #hero-text {
+    /* Simpler text effects on low-end devices */
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.6),
+        0 0 10px rgba(255, 255, 255, 0.2),
+        1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.low-end-device #hero-text:hover {
+    text-shadow: 0 0 1.5px rgba(255, 255, 255, 0.8),
+        0 0 15px rgba(255, 255, 255, 0.3),
+        2px 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+
+/* Performance optimizations for mobile */
+@media (max-width: 768px) {
+    .mobile-optimized * {
+        /* Reduce will-change usage on mobile */
+        will-change: auto;
+    }
+
+    .mobile-optimized #hero-text {
+        will-change: transform;
+    }
+
 }

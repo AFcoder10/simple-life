@@ -8,15 +8,64 @@ let animateCursor = () => {}; // Placeholder for cursor animation function
 let isAnimationEnabled; // No initial value, will be set by loadPreferences
 let animationFrameId = null; // For snow animation frame ID
 
+// Canvas and animation variables
+const canvas = document.getElementById('snow-canvas');
+const ctx = canvas.getContext('2d');
+
+// Enhanced performance-based snowflake count
+function getOptimalSnowflakeCount() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const pixelCount = width * height;
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    const isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2;
+
+    if (isMobile || isLowEnd) {
+        // Very conservative for mobile/low-end devices
+        return Math.min(30, Math.floor(pixelCount / 50000));
+    } else if (width <= 768) {
+        // Tablet or small desktop
+        return Math.min(75, Math.floor(pixelCount / 40000));
+    } else if (width <= 1024) {
+        // Medium desktop
+        return Math.min(150, Math.floor(pixelCount / 30000));
+    } else {
+        // Large desktop
+        return Math.min(250, Math.floor(pixelCount / 20000));
+    }
+}
+
+const numFlakes = getOptimalSnowflakeCount();
+let snowflakes = [];
+let gravityX = 0;
+let gravityY = 1;
+
+// Performance monitoring
+let frameCount = 0;
+let lastFPSUpdate = 0;
+let currentFPS = 60;
+let performanceMode = false;
+
+// Utility functions
+const formatTime = (ms) => {
+    if (isNaN(ms) || ms < 0) return '0:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 const LANYARD_API = `https://api.lanyard.rest/v1/users/${userId}`;
 
-const fetchStatus = async() => {
+const fetchStatus = async () => {
     try {
         const response = await fetch(LANYARD_API);
         if (!response.ok) {
             throw new Error(`Lanyard API returned ${response.status}`);
         }
-        const { data } = await response.json();
+        const {
+            data
+        } = await response.json();
 
         if (!data) {
             card.innerHTML = `<p class="loading">Could not fetch Discord status. The user might not be in the Lanyard Discord server or is offline with no cached data.</p>`;
@@ -31,17 +80,22 @@ const fetchStatus = async() => {
 };
 
 const updateCard = (data) => {
-        // Before re-rendering, check if the secondary activities are currently visible
-        const oldSecondaryContainer = document.getElementById('secondary-activities');
-        const wasSecondaryVisible = oldSecondaryContainer && !oldSecondaryContainer.classList.contains('hidden');
+    // Before re-rendering, check if the secondary activities are currently visible
+    const oldSecondaryContainer = document.getElementById('secondary-activities');
+    const wasSecondaryVisible = oldSecondaryContainer && !oldSecondaryContainer.classList.contains('hidden');
 
-        const { discord_user, discord_status, activities, spotify } = data;
+    const {
+        discord_user,
+        discord_status,
+        activities,
+        spotify
+    } = data;
 
-        // --- Build Profile Section ---
-        const avatarUrl = `https://cdn.discordapp.com/avatars/${discord_user.id}/${discord_user.avatar}.png?size=128`;
-        const statusIconHtml = `<img src="icons/${discord_status}.svg" alt="${discord_status}" class="status-icon">`;
+    // --- Build Profile Section ---
+    const avatarUrl = `https://cdn.discordapp.com/avatars/${discord_user.id}/${discord_user.avatar}.png?size=128`;
+    const statusIconHtml = `<img src="icons/${discord_status}.svg" alt="${discord_status}" class="status-icon">`;
 
-        const profileHtml = `
+    const profileHtml = `
       <div class="profile">
         <img src="${avatarUrl}" alt="${discord_user.username}'s avatar" class="avatar">
         <div class="user-info">
@@ -238,9 +292,16 @@ const setupCursor = () => {
     };
 };
 
-// --- Hero Text 3D Effect ---
+// --- Enhanced Hero Text 3D Effect with Mobile Optimizations ---
 const heroText = document.getElementById('hero-text');
 const heroContainer = document.querySelector('.hero-container');
+
+// Interaction state tracking
+let isInteracting = false;
+let touchStartTime = 0;
+let lastTapTime = 0;
+let touchCount = 0;
+let interactionTimeout = null;
 
 function handleInteraction(x, y) {
     const {
@@ -259,24 +320,192 @@ function handleInteraction(x, y) {
     heroText.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
 }
 
-// Mouse interaction
+function resetTransform() {
+    heroText.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    isInteracting = false;
+}
+
+function addRippleEffect() {
+    heroText.classList.add('ripple');
+    setTimeout(() => {
+        heroText.classList.remove('ripple');
+    }, 600);
+}
+
+function addGlowEffect() {
+    heroText.classList.add('glow');
+    setTimeout(() => {
+        heroText.classList.remove('glow');
+    }, 800);
+}
+
+function addPulseEffect() {
+    heroText.classList.add('pulse');
+    setTimeout(() => {
+        heroText.classList.remove('pulse');
+    }, 2000);
+}
+
+// Enhanced mouse interaction
 if (window.matchMedia("(pointer: fine)").matches) {
     heroContainer.addEventListener('mousemove', (e) => {
+        if (!isInteracting) {
+            isInteracting = true;
+        }
         handleInteraction(e.clientX, e.clientY);
     });
+
     heroContainer.addEventListener('mouseleave', () => {
-        heroText.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        resetTransform();
+    });
+
+    heroContainer.addEventListener('click', (e) => {
+        e.preventDefault();
+        addGlowEffect();
     });
 }
 
-// Touch interaction
-heroContainer.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Prevent scrolling while dragging on the text
-    handleInteraction(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: false });
+// Enhanced touch interaction with gesture support
+let touchStartX = 0;
+let touchStartY = 0;
+let isLongPress = false;
+let longPressTimer = null;
 
-heroContainer.addEventListener('touchend', () => {
-    heroText.style.transform = 'rotateX(0deg) rotateY(0deg)';
+heroContainer.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartTime = Date.now();
+    touchCount++;
+
+    // Add touch active state
+    heroText.classList.add('touch-active');
+
+    // Long press detection
+    longPressTimer = setTimeout(() => {
+        isLongPress = true;
+        addPulseEffect();
+    }, 500);
+
+    // Handle interaction
+    handleInteraction(touch.clientX, touch.clientY);
+    isInteracting = true;
+}, {
+    passive: false
+});
+
+heroContainer.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+
+    // Clear long press timer if moving
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+
+    // Handle interaction
+    handleInteraction(touch.clientX, touch.clientY);
+}, {
+    passive: false
+});
+
+heroContainer.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const touchEndTime = Date.now();
+    const touchDuration = touchEndTime - touchStartTime;
+
+    // Clear long press timer
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+
+    // Remove touch active state
+    heroText.classList.remove('touch-active');
+
+    // Handle different touch gestures
+    if (touchDuration < 200 && !isLongPress) {
+        // Quick tap
+        addRippleEffect();
+
+        // Double tap detection
+        if (touchCount === 2 && touchEndTime - lastTapTime < 300) {
+            addGlowEffect();
+            touchCount = 0;
+        }
+        lastTapTime = touchEndTime;
+    } else if (isLongPress) {
+        // Long press
+        addPulseEffect();
+        isLongPress = false;
+    }
+
+    // Reset interaction state
+    resetTransform();
+}, {
+    passive: false
+});
+
+// Prevent context menu on long press
+heroContainer.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+// Swipe gesture detection
+let swipeStartX = 0;
+let swipeStartY = 0;
+
+heroContainer.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    swipeStartX = touch.clientX;
+    swipeStartY = touch.clientY;
+}, {
+    passive: true
+});
+
+heroContainer.addEventListener('touchend', (e) => {
+    if (!swipeStartX || !swipeStartY) return;
+
+    const touch = e.changedTouches[0];
+    const swipeEndX = touch.clientX;
+    const swipeEndY = touch.clientY;
+
+    const swipeDistanceX = swipeEndX - swipeStartX;
+    const swipeDistanceY = swipeEndY - swipeStartY;
+
+    const minSwipeDistance = 50;
+
+    if (Math.abs(swipeDistanceX) > Math.abs(swipeDistanceY)) {
+        // Horizontal swipe
+        if (Math.abs(swipeDistanceX) > minSwipeDistance) {
+            if (swipeDistanceX > 0) {
+                // Swipe right
+                addGlowEffect();
+            } else {
+                // Swipe left
+                addRippleEffect();
+            }
+        }
+    } else {
+        // Vertical swipe
+        if (Math.abs(swipeDistanceY) > minSwipeDistance) {
+            if (swipeDistanceY > 0) {
+                // Swipe down
+                addPulseEffect();
+            } else {
+                // Swipe up
+                addGlowEffect();
+            }
+        }
+    }
+
+    // Reset swipe tracking
+    swipeStartX = 0;
+    swipeStartY = 0;
+}, {
+    passive: true
 });
 // --- Popup Logic ---
 const aboutBtn = document.getElementById('about-me-btn');
@@ -351,7 +580,11 @@ function updateTime() {
     const timeString = now.toLocaleString('en-US', options);
 
     // Get 24-hour format to determine time of day
-    const hour24 = parseInt(now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+    const hour24 = parseInt(now.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        hour12: false
+    }), 10);
 
     let greeting = '';
     if (hour24 >= 6 && hour24 < 12) { // 6 AM to 11:59 AM
@@ -392,69 +625,96 @@ function resizeCanvas() {
 
 function createSnowflakes() {
     snowflakes = [];
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+
     for (let i = 0; i < numFlakes; i++) {
         snowflakes.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            radius: Math.random() * 3 + 1, // radius between 1 and 4
-            speed: Math.random() * 2 + 0.5, // speed between 0.5 and 2.5
-            drift: Math.random() * 2 - 1, // horizontal drift between -1 and 1
-            opacity: Math.random() * 0.5 + 0.3 // opacity between 0.3 and 0.8
+            radius: isMobile ? Math.random() * 2 + 1 : Math.random() * 3 + 1, // Smaller on mobile
+            speed: isMobile ? Math.random() * 1.5 + 0.3 : Math.random() * 2 + 0.5, // Slower on mobile
+            drift: Math.random() * 2 - 1,
+            opacity: isMobile ? Math.random() * 0.3 + 0.2 : Math.random() * 0.5 + 0.3, // More subtle on mobile
+            // Performance optimization: batch similar flakes
+            batchId: Math.floor(i / 10) // Group flakes for batch rendering
         });
     }
 }
 
 function drawSnowflakes() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
 
+    // Performance optimization: batch similar flakes together
+    const batches = {};
     for (let i = 0; i < snowflakes.length; i++) {
         const flake = snowflakes[i];
+        const batchKey = `${flake.radius.toFixed(1)}_${flake.opacity.toFixed(1)}`;
 
-        ctx.globalAlpha = flake.opacity;
-        ctx.beginPath();
-        ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-        ctx.fill();
+        if (!batches[batchKey]) {
+            batches[batchKey] = [];
+        }
+        batches[batchKey].push(flake);
     }
+
+    // Draw each batch
+    Object.values(batches).forEach(batch => {
+        if (batch.length === 0) return;
+
+        const firstFlake = batch[0];
+        ctx.globalAlpha = firstFlake.opacity;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+
+        ctx.beginPath();
+        batch.forEach(flake => {
+            ctx.moveTo(flake.x + flake.radius, flake.y);
+            ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+        });
+        ctx.fill();
+    });
+
     ctx.globalAlpha = 1; // Reset global alpha
 }
 
 function updateSnowflakes() {
-     for (let i = 0; i < snowflakes.length; i++) {
-         const flake = snowflakes[i];
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    const updateInterval = performanceMode ? 2 : 1; // Skip frames in performance mode
 
-         flake.y += gravityY * flake.speed;
-         flake.x += gravityX * flake.speed + flake.drift;
+    for (let i = 0; i < snowflakes.length; i += updateInterval) {
+        const flake = snowflakes[i];
+        if (!flake) continue;
 
-         // Reset snowflake if it goes off-screen
-         const isOutOfBounds = flake.y > canvas.height + flake.radius ||
-             flake.y < -flake.radius ||
-             flake.x > canvas.width + flake.radius ||
-             flake.x < -flake.radius;
+        flake.y += gravityY * flake.speed;
+        flake.x += gravityX * flake.speed + flake.drift;
 
-         if (isOutOfBounds) {
-             // If it's out of bounds, reset it to the "top" relative to gravity
-             if (Math.abs(gravityX) > Math.abs(gravityY)) {
-                 // More horizontal than vertical
-                 if (gravityX > 0) { // Moving right
-                     flake.x = -flake.radius;
-                     flake.y = Math.random() * canvas.height;
-                 } else { // Moving left
-                     flake.x = canvas.width + flake.radius;
-                     flake.y = Math.random() * canvas.height;
-                 }
-             } else {
-                 // More vertical than horizontal (or equal)
-                 if (gravityY >= 0) { // Moving down
-                     flake.x = Math.random() * canvas.width;
-                     flake.y = -flake.radius;
-                 } else { // Moving up
-                     flake.x = Math.random() * canvas.width;
-                     flake.y = canvas.height + flake.radius;
-                 }
-             }
-         }
-     }
+        // Reset snowflake if it goes off-screen
+        const isOutOfBounds = flake.y > canvas.height + flake.radius ||
+            flake.y < -flake.radius ||
+            flake.x > canvas.width + flake.radius ||
+            flake.x < -flake.radius;
+
+        if (isOutOfBounds) {
+            // If it's out of bounds, reset it to the "top" relative to gravity
+            if (Math.abs(gravityX) > Math.abs(gravityY)) {
+                // More horizontal than vertical
+                if (gravityX > 0) { // Moving right
+                    flake.x = -flake.radius;
+                    flake.y = Math.random() * canvas.height;
+                } else { // Moving left
+                    flake.x = canvas.width + flake.radius;
+                    flake.y = Math.random() * canvas.height;
+                }
+            } else {
+                // More vertical than horizontal (or equal)
+                if (gravityY >= 0) { // Moving down
+                    flake.x = Math.random() * canvas.width;
+                    flake.y = -flake.radius;
+                } else { // Moving up
+                    flake.x = Math.random() * canvas.width;
+                    flake.y = canvas.height + flake.radius;
+                }
+            }
+        }
+    }
 }
 
 function animateSnow() {
@@ -463,19 +723,29 @@ function animateSnow() {
         animationFrameId = null;
         return;
     }
+
+    // Performance monitoring
+    frameCount++;
+    const now = performance.now();
+    if (now - lastFPSUpdate >= 1000) {
+        currentFPS = frameCount;
+        frameCount = 0;
+        lastFPSUpdate = now;
+
+        // Adjust performance mode based on FPS
+        if (currentFPS < 30 && !performanceMode) {
+            performanceMode = true;
+            console.log('Switching to performance mode due to low FPS');
+        } else if (currentFPS > 45 && performanceMode) {
+            performanceMode = false;
+            console.log('Switching back to normal mode');
+        }
+    }
+
     updateSnowflakes();
     drawSnowflakes();
     animationFrameId = requestAnimationFrame(animateSnow);
 }
-
-// --- Snowfall Animation ---
-const canvas = document.getElementById('snow-canvas');
-const ctx = canvas.getContext('2d');
-// Dynamically set snowflake count based on screen size for performance
-const numFlakes = window.innerWidth <= 768 ? 75 : 250;
-let snowflakes = [];
-let gravityX = 0;
-let gravityY = 1;
 
 function stopSnow() {
     isAnimationEnabled = false;
@@ -520,8 +790,72 @@ function initDeviceOrientation() {
     }
 }
 
-// Initialize
-window.addEventListener('resize', resizeCanvas);
+
+
+
+// Enhanced mobile optimizations and initialization
+function optimizeForMobile() {
+    const isMobile = window.matchMedia("(pointer: coarse)").matches;
+    const isLowEnd = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2;
+
+    if (isMobile || isLowEnd) {
+        // Reduce animation complexity on mobile
+        document.body.classList.add('mobile-optimized');
+
+        // Disable some heavy effects on mobile
+        if (isLowEnd) {
+            // Disable backdrop filters on low-end devices
+            document.body.classList.add('low-end-device');
+        }
+
+        // Optimize touch interactions
+        document.body.style.touchAction = 'manipulation';
+    }
+}
+
+// Initialize mobile optimizations
+optimizeForMobile();
+
+// Initialize snowfall animation
+resizeCanvas();
+createSnowflakes();
+if (isAnimationEnabled) {
+    animateSnow();
+} else {
+    stopSnow();
+}
+
+initDeviceOrientation();
+
+// Mobile-specific event listeners
+if (window.matchMedia("(pointer: coarse)").matches) {
+    // Prevent zoom on double tap
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, false);
+
+    // Optimize scroll performance
+    document.addEventListener('touchmove', function(e) {
+        // Allow scrolling but prevent default on specific elements
+        if (e.target.closest('.hero-container')) {
+            e.preventDefault();
+        }
+    }, {
+        passive: false
+    });
+
+    // Handle orientation change
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            optimizeForMobile();
+        }, 100);
+    });
+}
 
 // --- Sidebar Toggles Logic ---
 const cursorToggle = document.getElementById('cursor-toggle');
@@ -544,10 +878,12 @@ const loadPreferences = () => {
     if (animationToggle) {
         animationToggle.checked = isAnimationEnabled;
     }
+
 };
 
 // Load preferences immediately after toggle elements are available
 loadPreferences();
+
 
 // Apply initial states based on loaded preferences
 // Custom Cursor Initialization
@@ -622,13 +958,6 @@ animationToggle.addEventListener('change', (e) => {
     }
 });
 
-const formatTime = (ms) => {
-    if (isNaN(ms) || ms < 0) return '0:00';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
 
 function updateSpotifyProgressBar(timestamps) {
     if (spotifyInterval) clearInterval(spotifyInterval);
@@ -639,7 +968,10 @@ function updateSpotifyProgressBar(timestamps) {
 
     if (!progressBar || !timeElapsedEl || !timeTotalEl) return;
 
-    const { start, end } = timestamps;
+    const {
+        start,
+        end
+    } = timestamps;
     const duration = end - start;
 
     timeTotalEl.textContent = formatTime(duration);
